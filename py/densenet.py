@@ -1,12 +1,10 @@
-import numpy as np      # ??? Uses numpy?
-import pickle           # What is Pickle for?
-# Pickle is used for serializing and deserializing Python objects. Most likely this is how we will save and restore
-# ... models that have been trained
-import cv2              # Guessing we use openCV to load images
-import os 
+import numpy as np
+import pickle
+import cv2
+import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 from os import listdir
-from sys import exit # Be able to quit
+from sys import exit
 
 from tensorflow import keras
 
@@ -22,9 +20,8 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras import losses
 from tensorflow.keras.utils import image_dataset_from_directory, img_to_array
-# import matplotlib.pyplot as plt                                       # Not needed
-from tensorflow.keras.applications.efficientnet_v2 import preprocess_input
-from tensorflow.keras.applications.efficientnet_v2 import EfficientNetV2B0 as imported_network
+from tensorflow.keras.applications.densenet import preprocess_input
+from tensorflow.keras.applications.densenet import DenseNet201 as imported_network
 import tensorflow as tf
 
 # https://stackoverflow.com/questions/70048701/how-can-i-preprocess-a-tf-data-dataset-using-a-provided-preprocess-input-functio
@@ -33,9 +30,7 @@ def display(ds):
     images, _ = next(iter(ds.take(1)))
     image = images[0].numpy()
     image /= 255.0
-    #plt.imshow(image)
 
-# Some weird mapper, same source as above
 def preprocess(images, labels):
     return preprocess_input(images), labels
 
@@ -43,38 +38,32 @@ EPOCHS = 2000
 BS = 5
 image_size = 0
 directory_root = '../../local_data/symptoms on almond leaves/'
-#directory_root = 'rice_leaf_diseases'
-width=299
-height=299
+width=224
+height=224
 depth=3
 default_image_size = tuple((width, height)) # Sets image size
 LABELS='categorical'
 SEED_LIST=(1,2,3)
 
-for SEED in SEED_LIST:
-
+for SEED in SEED_LIST: # Perform three folds using different seeds
     # Use Python scripting, but not Tensorflow, to determine  the number of classes by counting the number of sub
     # -directories
     n_classes = len(next(os.walk( directory_root ))[1])
     print( "Number of detected classes is " + str( n_classes ) )
-    
+
     # New version: User image_dataset_from_directory
-    train_ds = tf.keras.utils.image_dataset_from_directory( 
-            directory_root, 
-            #labels='inferred', 
-            #label_mode=LABELS, 
-            batch_size=BS, 
+    train_ds = tf.keras.utils.image_dataset_from_directory(
+            directory_root,
+            batch_size=BS,
             image_size=(width,height),
             validation_split=0.2,
             crop_to_aspect_ratio=True,
             seed=6118,
             subset="training")
-    
-    val_ds = tf.keras.utils.image_dataset_from_directory( 
-            directory_root, 
-            #labels='inferred', 
-            #label_mode=LABELS, 
-            batch_size=BS, 
+
+    val_ds = tf.keras.utils.image_dataset_from_directory(
+            directory_root,
+            batch_size=BS,
             image_size=(width,height),
             validation_split=0.2,
             crop_to_aspect_ratio=True,
@@ -93,7 +82,6 @@ for SEED in SEED_LIST:
     val_ds = val_ds.map(preprocess)
 
 # Normalization of image intensities from [0,1] is perfomed by adding a special layer
-
     base_model = imported_network(
         weights='imagenet',                 # Load weights pre-trained on ImageNet.
         input_shape=(height, width, depth), # VGG16 expects min 32 x 32
@@ -101,7 +89,6 @@ for SEED in SEED_LIST:
     base_model.trainable = False
 
 # Transfer learning example
-
     model = tf.keras.models.Sequential([
         tf.keras.layers.RandomFlip(mode="horizontal"),                                          # Augmentation
         tf.keras.layers.RandomRotation(factor=(-0.25,0.25)),                                    # Augmentation
@@ -116,16 +103,15 @@ for SEED in SEED_LIST:
     opt = tf.keras.optimizers.Adam()
 # distribution
     model.compile(
-            loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True), 
+            loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True),
             optimizer=opt,
             metrics=[tf.metrics.SparseCategoricalAccuracy()]
             )
 # train the network
     print("[INFO] training network...")
 
-    model.fit( 
+    model.fit(
             train_ds,
             validation_data=val_ds,
             epochs=EPOCHS,
             verbose=2)
-

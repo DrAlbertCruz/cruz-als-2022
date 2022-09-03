@@ -1,9 +1,7 @@
-import numpy as np      # ??? Uses numpy?
-import pickle           # What is Pickle for?
-# Pickle is used for serializing and deserializing Python objects. Most likely this is how we will save and restore
-# ... models that have been trained
-import cv2              # Guessing we use openCV to load images
-import os 
+import numpy as np
+import pickle
+import cv2
+import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 from os import listdir
 from sys import exit # Be able to quit
@@ -22,7 +20,6 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras import losses
 from tensorflow.keras.utils import image_dataset_from_directory, img_to_array
-# import matplotlib.pyplot as plt                                       # Not needed
 from tensorflow.keras.applications.xception import preprocess_input
 from tensorflow.keras.applications.xception import Xception as imported_network
 import tensorflow as tf
@@ -57,24 +54,20 @@ for SEED in SEED_LIST:
     # -directories
     n_classes = len(next(os.walk( directory_root ))[1])
     print( "Number of detected classes is " + str( n_classes ) )
-    
+
     # New version: User image_dataset_from_directory
-    train_ds = tf.keras.utils.image_dataset_from_directory( 
-            directory_root, 
-            #labels='inferred', 
-            #label_mode=LABELS, 
-            batch_size=BS, 
+    train_ds = tf.keras.utils.image_dataset_from_directory(
+            directory_root,
+            batch_size=BS,
             image_size=(width,height),
             validation_split=0.2,
             crop_to_aspect_ratio=True,
             seed=6118,
             subset="training")
-    
-    val_ds = tf.keras.utils.image_dataset_from_directory( 
+
+    val_ds = tf.keras.utils.image_dataset_from_directory(
             directory_root, 
-            #labels='inferred', 
-            #label_mode=LABELS, 
-            batch_size=BS, 
+            batch_size=BS,
             image_size=(width,height),
             validation_split=0.2,
             crop_to_aspect_ratio=True,
@@ -116,16 +109,15 @@ for SEED in SEED_LIST:
     opt = tf.keras.optimizers.Adam()
 # distribution
     model.compile(
-            loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True), 
+            loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True),
             optimizer=opt,
             metrics=[tf.metrics.SparseCategoricalAccuracy()]
             )
 # train the network
     print("[INFO] training network...")
 
-    model.fit( 
+    model.fit(
             train_ds,
             validation_data=val_ds,
             epochs=EPOCHS,
             verbose=2)
-
